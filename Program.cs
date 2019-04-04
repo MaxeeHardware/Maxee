@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Web;
 
 namespace Maxee.DemoAPIConsole
 {
@@ -16,7 +17,8 @@ namespace Maxee.DemoAPIConsole
         const int IndentSize = 4;
         static void Main(string[] args)
         {
-            if (apiKeyUser == "enter your api key here") {
+            if (apiKeyUser == "enter your api key here")
+            {
                 Console.WriteLine("Please fill in your api key in the constant apiKeyUser.");
                 Console.ReadLine();
                 return;
@@ -43,6 +45,51 @@ namespace Maxee.DemoAPIConsole
             //Token is valid for 24 hours
             string token = input.auth_token;
 
+
+            //Get data of a channel starting at a certain time
+            GetChannelDataOfDeviceStartingAtTimestamp(debugDumpJson, ref indentLevel, ref indentString, client, ref request, ref response, token);
+
+            //Loop through all data
+            ShowAllInformation(debugDumpJson, ref indentLevel, ref indentString, client, ref request, ref response, token);
+
+            Console.WriteLine("Press any key to exit.");
+            Console.ReadLine();
+        }
+        private static void GetChannelDataOfDeviceStartingAtTimestamp(bool debugDumpJson, ref int indentLevel, ref string indentString, RestClient client, ref RestRequest request, ref IRestResponse response, string token)
+        {
+            int channelId = 572;
+            var startDate = DateTime.Now.AddHours(-1);
+            var urlStartDate = startDate.ToString("yyyy-MM-ddTHH-mm-ss");
+            Console.WriteLine($" ChannelId :{channelId}");
+
+            //get first page of data for channel
+            request = new RestRequest($"api/data", Method.GET)
+            {
+                RequestFormat = DataFormat.Json
+            };
+            request.AddHeader("Authorization", "Bearer " + token);
+            request.AddQueryParameter("sort", "timeStamp-desc");
+            request.AddQueryParameter("page", "1");
+            request.AddQueryParameter("pageSize", "20");
+            request.AddQueryParameter("filter", $"(channelId~eq~{channelId}~and~timestamp~gte~datetime'{urlStartDate}')", false);
+            Console.WriteLine(client.BuildUri(request));
+            response = client.Execute(request);
+            var jsonChannelData = response.Content;
+            var maxeeChannelDataList = MaxeeDeviceChannelDataQuickType.MaxeeDeviceChannelDataList.FromJson(jsonChannelData);
+            indentLevel = 4;
+            indentString = new string(' ', indentLevel * IndentSize);
+            int ii = 1;
+            foreach (var maxeeChannelData in maxeeChannelDataList.Data)
+            {
+                Console.WriteLine($"{indentString}{ii} TimeStamp : {maxeeChannelData.TimeStamp}  Value : {maxeeChannelData.Value}");
+                ii++;
+            }
+
+
+        }
+
+        private static void ShowAllInformation(bool debugDumpJson, ref int indentLevel, ref string indentString, RestClient client, ref RestRequest request, ref IRestResponse response, string token)
+        {
             //Get all companies of users apikey
             var jsonString = ExecuteAPIMethod(client, token, "api/companies", debugDumpJson);
             var maxeeCompanies = MaxeeCompaniesQuickType.MaxeeCompanies.FromJson(jsonString);
@@ -151,11 +198,6 @@ namespace Maxee.DemoAPIConsole
 
                 }
             }
-
-
-
-            Console.WriteLine("Press any key to exit.");
-            Console.ReadLine();
         }
 
         private static string ExecuteAPIMethod(RestClient client, string token, string apiMethod, bool dumpJson = false)
