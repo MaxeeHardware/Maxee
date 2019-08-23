@@ -33,7 +33,9 @@ namespace Maxee.DemoAPIConsole
             {
                 RequestFormat = DataFormat.Json
             };
-            request.AddBody(new { apiKey = apiKeyUser }); // uses JsonSerializer
+            //obsolete
+            //request.AddBody(new { apiKey = apiKeyUser }); // uses JsonSerializer
+            request.AddJsonBody(new { apiKey = apiKeyUser }); // uses JsonSerializer
             IRestResponse response = client.Execute(request);
             var content = response.Content; // raw content as string
             //DumpJsonPrettyFormatted("api/Auth/token", content);
@@ -47,7 +49,7 @@ namespace Maxee.DemoAPIConsole
 
 
             //Get data of a channel starting at a certain time
-            GetChannelDataOfDeviceStartingAtTimestamp(debugDumpJson, ref indentLevel, ref indentString, client, ref request, ref response, token);
+            //GetChannelDataOfDeviceStartingAtTimestamp(debugDumpJson, ref indentLevel, ref indentString, client, ref request, ref response, token);
 
             //Loop through all data
             ShowAllInformation(debugDumpJson, ref indentLevel, ref indentString, client, ref request, ref response, token);
@@ -136,7 +138,9 @@ namespace Maxee.DemoAPIConsole
                     request.AddQueryParameter("page", "1");
                     request.AddQueryParameter("pageSize", "20");
                     request.AddQueryParameter("filter", $"divisionId~eq~{division.Id}");
+                    Console.WriteLine(client.BuildUri(request));
                     response = client.Execute(request);
+
                     var jsonDevices = response.Content;
                     var maxeeSensors = MaxeeDevicesQuickType.MaxeeDevices.FromJson(jsonDevices);
                     indentLevel = 2;
@@ -168,6 +172,9 @@ namespace Maxee.DemoAPIConsole
                         foreach (var maxeeChannel in maxeeDeviceChannels.Data)
                         {
                             Console.WriteLine($"{indentString}{l} ChannelName : {maxeeChannel.Name} ({maxeeChannel.Id})");
+                            //get data for the last 12 hours 
+                            var startDate = DateTime.Now.AddHours(-12);
+                            var urlStartDate = startDate.ToString("yyyy-MM-ddTHH-mm-ss");
                             l++;
                             //get first page of data for channel
                             request = new RestRequest($"api/data", Method.GET)
@@ -178,7 +185,8 @@ namespace Maxee.DemoAPIConsole
                             request.AddQueryParameter("sort", "timeStamp-desc");
                             request.AddQueryParameter("page", "1");
                             request.AddQueryParameter("pageSize", "20");
-                            request.AddQueryParameter("filter", $"channelId~eq~{maxeeChannel.Id}");
+                            //request.AddQueryParameter("filter", $"channelId~eq~{maxeeChannel.Id}");
+                            request.AddQueryParameter("filter", $"(channelId~eq~{maxeeChannel.Id}~and~timestamp~gte~datetime'{urlStartDate}')", false);
                             response = client.Execute(request);
                             var jsonChannelData = response.Content;
                             var maxeeChannelDataList = MaxeeDeviceChannelDataQuickType.MaxeeDeviceChannelDataList.FromJson(jsonChannelData);
