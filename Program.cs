@@ -2,210 +2,303 @@
 using RestSharp;
 using System;
 using System.Collections.Generic;
-using System.Dynamic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Web;
 
 namespace Maxee.DemoAPIConsole
 {
     class Program
     {
-        const string apiKeyUser = "enter your api key here";
-        const int IndentSize = 4;
+        static string _apiKeyUser = string.Empty;
+        const int _indentSize = 4;
+        static string _sessionToken;
+        static bool _debugDump = false;
+
         static void Main(string[] args)
         {
-            if (apiKeyUser == "enter your api key here")
+            bool showMenu = true;
+            while (showMenu)
             {
-                Console.WriteLine("Please fill in your api key in the constant apiKeyUser.");
-                Console.ReadLine();
-                return;
+                showMenu = MainMenu();
             }
-            bool debugDumpJson = false;
-            int indentLevel = 1;
-            string indentString = string.Empty;
+        }
 
+        private static bool MainMenu()
+        {
+            Console.Clear();
+            Console.WriteLine("Choose an option:");
+            Console.WriteLine("1) Enter API key. ");
+            Console.WriteLine("2) Get authorization token (valid 24 hours). ");
+            Console.WriteLine("3) Get all channelids. ");
+            Console.WriteLine("4) Get data for channelid.");
+            Console.WriteLine("5) Exit");
+            Console.Write("\r\nSelect an option: ");
 
-            var client = new RestClient("https://api.maxee.eu");
-            var request = new RestRequest("api/Auth/token", Method.POST)
+            switch (Console.ReadLine())
             {
-                RequestFormat = DataFormat.Json
-            };
-            //obsolete
-            //request.AddBody(new { apiKey = apiKeyUser }); // uses JsonSerializer
-            request.AddJsonBody(new { apiKey = apiKeyUser }); // uses JsonSerializer
-            IRestResponse response = client.Execute(request);
-            var content = response.Content; // raw content as string
-            //DumpJsonPrettyFormatted("api/Auth/token", content);
+                case "1":
+                    GetAPIKey();
+                    return true;
+                case "2":
+                    GetAuthorizationToken();
+                    return true;
+                case "3":
+                    GetAllChannels();
+                    return true;
+                case "4":
+                    GetChannelDataOfDeviceStartingAtTimestamp();
+                    return true;
+                case "5":
+                    return false;
+                default:
+                    return true;
+            }
+        }
 
-            dynamic input = JsonConvert.DeserializeObject(content);
-            //DumpDynamicObjectInfo(input);
-
-            //Token used for all other requests.
-            //Token is valid for 24 hours
-            string token = input.auth_token;
-
-
-            //Get data of a channel starting at a certain time
-            //GetChannelDataOfDeviceStartingAtTimestamp(debugDumpJson, ref indentLevel, ref indentString, client, ref request, ref response, token);
-
-            //Loop through all data
-            ShowAllInformation(debugDumpJson, ref indentLevel, ref indentString, client, ref request, ref response, token);
-
-            Console.WriteLine("Press any key to exit.");
+        static void GetAPIKey()
+        {
+            Console.Clear();
+            Console.WriteLine("Enter your API Key");
+            var apiKey = Console.ReadLine();
+            if (!string.IsNullOrEmpty(apiKey)) _apiKeyUser = apiKey;
+            Console.WriteLine("Press any key to return to menu.");
             Console.ReadLine();
         }
-        private static void GetChannelDataOfDeviceStartingAtTimestamp(bool debugDumpJson, ref int indentLevel, ref string indentString, RestClient client, ref RestRequest request, ref IRestResponse response, string token)
+        static void GetAuthorizationToken()
         {
-            int channelId = 572;
-            var startDate = DateTime.Now.AddHours(-1);
-            var urlStartDate = startDate.ToString("yyyy-MM-ddTHH-mm-ss");
-            Console.WriteLine($" ChannelId :{channelId}");
-
-            //get first page of data for channel
-            request = new RestRequest($"api/data", Method.GET)
+            try
             {
-                RequestFormat = DataFormat.Json
-            };
-            request.AddHeader("Authorization", "Bearer " + token);
-            request.AddQueryParameter("sort", "timeStamp-desc");
-            request.AddQueryParameter("page", "1");
-            request.AddQueryParameter("pageSize", "20");
-            request.AddQueryParameter("filter", $"(channelId~eq~{channelId}~and~timestamp~gte~datetime'{urlStartDate}')", false);
-            Console.WriteLine(client.BuildUri(request));
-            response = client.Execute(request);
-            var jsonChannelData = response.Content;
-            var maxeeChannelDataList = MaxeeDeviceChannelDataQuickType.MaxeeDeviceChannelDataList.FromJson(jsonChannelData);
-            indentLevel = 4;
-            indentString = new string(' ', indentLevel * IndentSize);
-            int ii = 1;
-            foreach (var maxeeChannelData in maxeeChannelDataList.Data)
-            {
-                Console.WriteLine($"{indentString}{ii} TimeStamp : {maxeeChannelData.TimeStamp}  Value : {maxeeChannelData.Value}");
-                ii++;
-            }
-
-
-        }
-
-        private static void ShowAllInformation(bool debugDumpJson, ref int indentLevel, ref string indentString, RestClient client, ref RestRequest request, ref IRestResponse response, string token)
-        {
-            //Get all companies of users apikey
-            var jsonString = ExecuteAPIMethod(client, token, "api/companies", debugDumpJson);
-            var maxeeCompanies = MaxeeCompaniesQuickType.MaxeeCompanies.FromJson(jsonString);
-
-            Console.WriteLine("Number of companies retrieved :" + maxeeCompanies.Total);
-            int i = 1;
-            foreach (var company in maxeeCompanies.Data)
-            {
-                Console.WriteLine();
-                Console.WriteLine($"{i} Company : {company.Name} ({company.Id})");
-                Console.WriteLine("=============================================");
-                i++;
-                //get all divisions for company
-                request = new RestRequest("api/divisions", Method.GET)
+                Console.Clear();
+                var client = new RestClient("https://api.maxee.eu");
+                var request = new RestRequest("api/Auth/token", Method.POST)
                 {
                     RequestFormat = DataFormat.Json
                 };
-                request.AddHeader("Authorization", "Bearer " + token);
-                request.AddQueryParameter("sort", "name-asc");
-                request.AddQueryParameter("page", "1");
-                request.AddQueryParameter("pageSize", "20");
-                request.AddQueryParameter("filter", $"companyId~eq~{company.Id}");
-                response = client.Execute(request);
-                var jsonDivisions = response.Content;
-                var maxeeDivisions = MaxeeDivisionsQuickType.MaxeeDivisions.FromJson(jsonDivisions);
+                request.AddJsonBody(new { apiKey = _apiKeyUser }); // uses JsonSerializer
+                IRestResponse response = client.Execute(request);
+                var content = response.Content; // raw content as string
+                //if _debugDump is true it shows json content in console
+                if (_debugDump) DumpJsonPrettyFormatted("api/Auth/token", content);
 
-                indentLevel = 1;
-                indentString = new string(' ', indentLevel * IndentSize);
-                Console.WriteLine($"{indentString}Number of divisions for company {company.Name} retrieved : {maxeeDivisions.Total}");
-                int j = 1;
-                foreach (var division in maxeeDivisions.Data)
+                dynamic input = JsonConvert.DeserializeObject(content);
+                //if _debugDump is true it shows property information of objects
+                if (_debugDump) DumpDynamicObjectInfo(input);
+
+                //Token used for all other requests. Token is valid for 24 hours
+                _sessionToken = input.auth_token;
+
+                Console.WriteLine("Session token retrieved, press any key to return to menu.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                Console.WriteLine("Press any key to return to menu.");
+            }
+            Console.ReadLine();
+        }
+
+        private static void GetChannelDataOfDeviceStartingAtTimestamp()
+        {
+            try
+            {
+                Console.Clear();
+                Console.WriteLine("Session token is valid for 24 hours. Be sure you have refreshed session token if needed.");
+                Console.WriteLine("Enter the channelid:");
+                int channelId = Convert.ToInt32(Console.ReadLine());
+
+
+                var minStartDate = DateTime.Now.AddMonths(-2);
+                DateTime startTimestamp;
+
+                Console.WriteLine($"Enter startdate to retrieve data. Minimumdate is {minStartDate.ToString("yyyy-MM-dd HH:mm:ss")}");
+                if (!DateTime.TryParse(Console.ReadLine(), out startTimestamp))
                 {
-                    indentLevel = 1;
-                    indentString = new string(' ', indentLevel * IndentSize);
-                    Console.WriteLine($"{indentString}{j} DivisionName : {division.Name} ({division.Id})");
-                    j++;
-                    //get all devices for division
-                    request = new RestRequest("api/devices", Method.GET)
+                    Console.WriteLine("Invalid date, please enter a valid date (yyyy-MM-dd HH:mm:ss), fe 2019-10-30 10:15:00");
+                }
+                else
+                {
+                    if (startTimestamp < minStartDate)
                     {
-                        RequestFormat = DataFormat.Json
-                    };
-                    request.AddHeader("Authorization", "Bearer " + token);
-                    request.AddQueryParameter("sort", "name-asc");
-                    request.AddQueryParameter("page", "1");
-                    request.AddQueryParameter("pageSize", "20");
-                    request.AddQueryParameter("filter", $"divisionId~eq~{division.Id}");
-                    Console.WriteLine(client.BuildUri(request));
-                    response = client.Execute(request);
+                        Console.WriteLine($"The startdate must be greater than the minimumstardate {minStartDate.ToString("yyyy-MM-dd HH:mm:ss")}");
+                    }
+                    else
+                    {
+                        RestRequest request = null;
+                        IRestResponse response = null;
+                        int indentLevel = 1;
+                        string indentString = string.Empty;
 
-                    var jsonDevices = response.Content;
-                    var maxeeSensors = MaxeeDevicesQuickType.MaxeeDevices.FromJson(jsonDevices);
-                    indentLevel = 2;
-                    indentString = new string(' ', indentLevel * IndentSize);
-                    Console.WriteLine($"{indentString}Number of sensors for division {division.Name} retrieved : {maxeeSensors.Total}");
-                    int k = 1;
-                    foreach (var maxeeSensor in maxeeSensors.Data)
-                    {
-                        indentLevel = 2;
-                        indentString = new string(' ', indentLevel * IndentSize);
-                        Console.WriteLine($"{indentString}{k} SensorName : {maxeeSensor.Name} ({maxeeSensor.Id})");
-                        k++;
-                        //get all channels for device
-                        request = new RestRequest($"api/channels/{maxeeSensor.Id}", Method.GET)
+                        string timestampFilter = string.Empty;
+                        timestampFilter = $"timeStamp~gte~datetime'{startTimestamp.ToString("yyyy-MM-ddTHH-mm-ss")}'";
+
+                        Console.WriteLine($"\r\nRetrieving data for channel with id {channelId}, pagesize=20");
+
+                        var client = new RestClient("https://api.maxee.eu");
+                        long count = 0;
+                        int pagenumber = 1;
+                        //We should use a pagesize for retrieving data. Then we need to repeat the request until no data is retrieved
+                        do
                         {
-                            RequestFormat = DataFormat.Json
-                        };
-                        request.AddHeader("Authorization", "Bearer " + token);
-                        request.AddQueryParameter("sort", "name-asc");
-                        request.AddQueryParameter("page", "1");
-                        request.AddQueryParameter("pageSize", "20");
-                        response = client.Execute(request);
-                        var jsonChannels = response.Content;
-                        var maxeeDeviceChannels = MaxeeDeviceChannelsQuickType.MaxeeDeviceChannels.FromJson(jsonChannels);
-                        indentLevel = 3;
-                        indentString = new string(' ', indentLevel * IndentSize);
-                        Console.WriteLine($"{indentString}Number of channels for device {maxeeSensor.Name} retrieved : {maxeeDeviceChannels.Total}");
-                        int l = 1;
-                        foreach (var maxeeChannel in maxeeDeviceChannels.Data)
-                        {
-                            Console.WriteLine($"{indentString}{l} ChannelName : {maxeeChannel.Name} ({maxeeChannel.Id})");
-                            //get data for the last 12 hours 
-                            var startDate = DateTime.Now.AddHours(-12);
-                            var urlStartDate = startDate.ToString("yyyy-MM-ddTHH-mm-ss");
-                            l++;
+                            count = 0;
                             //get first page of data for channel
                             request = new RestRequest($"api/data", Method.GET)
                             {
                                 RequestFormat = DataFormat.Json
                             };
-                            request.AddHeader("Authorization", "Bearer " + token);
+                            request.AddHeader("Authorization", "Bearer " + _sessionToken);
                             request.AddQueryParameter("sort", "timeStamp-desc");
+                            request.AddQueryParameter("page", pagenumber.ToString());
+                            request.AddQueryParameter("pageSize", "20");
+                            //            request.AddQueryParameter("filter", $"(channelId~eq~{channelId}~and~timestamp~gte~datetime'{urlStartDate}')", false);
+                            request.AddParameter("filter", $"(channelId~eq~{channelId}{(string.IsNullOrWhiteSpace(timestampFilter) ? string.Empty : "~and~" + timestampFilter)})");
+
+                            //if _debugDump is true it shows the REST API url
+                            if (_debugDump) Console.WriteLine(client.BuildUri(request));
+                            response = client.Execute(request);
+
+                            if (response.IsSuccessful)
+                            {
+                                var jsonChannelData = response.Content;
+
+                                var maxeeChannelDataList = MaxeeDeviceChannelDataQuickType.MaxeeDeviceChannelDataList.FromJson(jsonChannelData);
+                                pagenumber++;
+                                indentLevel = 4;
+                                indentString = new string(' ', indentLevel * _indentSize);
+                                int ii = 1;
+                                foreach (var maxeeChannelData in maxeeChannelDataList.Data)
+                                {
+                                    Console.WriteLine($"{indentString}{pagenumber}/{ii} TimeStamp : {maxeeChannelData.TimeStamp}  Value : {maxeeChannelData.Value}");
+                                    ii++;
+                                    count++;
+                                }
+                            }
+                            else
+                            {
+                                throw new ApplicationException($"Could not retrieve data, statuscode: {response.StatusCode.ToString()}");
+                            }
+
+                        } while (count > 0);
+                    }
+                }
+
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+
+            Console.WriteLine("Press any key to return to menu.");
+            Console.ReadLine();
+        }
+
+        private static void GetAllChannels()
+        {
+            //Get all companies of users apikey
+            try
+            {
+                Console.Clear();
+                RestRequest request = null;
+                IRestResponse response = null;
+                int indentLevel;
+                string indentString;
+
+                var client = new RestClient("https://api.maxee.eu");
+
+                //Get all companies of users apikey
+                var jsonString = ExecuteAPIMethod(client, _sessionToken, "api/companies");
+                var maxeeCompanies = MaxeeCompaniesQuickType.MaxeeCompanies.FromJson(jsonString);
+
+
+                Console.WriteLine("Number of companies retrieved :" + maxeeCompanies.Total);
+                int i = 1;
+                foreach (var company in maxeeCompanies.Data)
+                {
+                    Console.WriteLine();
+                    Console.WriteLine($"{i} Company : {company.Name} (id={company.Id})");
+                    Console.WriteLine("=============================================");
+                    i++;
+                    //get all divisions for company
+                    request = new RestRequest("api/divisions", Method.GET)
+                    {
+                        RequestFormat = DataFormat.Json
+                    };
+                    request.AddHeader("Authorization", "Bearer " + _sessionToken);
+                    request.AddQueryParameter("sort", "name-asc");
+                    request.AddQueryParameter("page", "1");
+                    request.AddQueryParameter("pageSize", "20");
+                    request.AddQueryParameter("filter", $"companyId~eq~{company.Id}");
+                    response = client.Execute(request);
+                    var jsonDivisions = response.Content;
+                    var maxeeDivisions = MaxeeDivisionsQuickType.MaxeeDivisions.FromJson(jsonDivisions);
+
+                    indentLevel = 1;
+                    indentString = new string(' ', indentLevel * _indentSize);
+                    Console.WriteLine($"{indentString}Number of divisions for company {company.Name} retrieved : {maxeeDivisions.Total}");
+                    int j = 1;
+                    foreach (var division in maxeeDivisions.Data)
+                    {
+                        indentLevel = 1;
+                        indentString = new string(' ', indentLevel * _indentSize);
+                        Console.WriteLine($"{indentString}{j} DivisionName : {division.Name} (id={division.Id})");
+                        j++;
+                        //get all devices for division
+                        request = new RestRequest("api/devices", Method.GET)
+                        {
+                            RequestFormat = DataFormat.Json
+                        };
+                        request.AddHeader("Authorization", "Bearer " + _sessionToken);
+                        request.AddQueryParameter("sort", "name-asc");
+                        request.AddQueryParameter("page", "1");
+                        request.AddQueryParameter("pageSize", "20");
+                        request.AddQueryParameter("filter", $"divisionId~eq~{division.Id}");
+                        Console.WriteLine(client.BuildUri(request));
+                        response = client.Execute(request);
+
+                        var jsonDevices = response.Content;
+                        var maxeeSensors = MaxeeDevicesQuickType.MaxeeDevices.FromJson(jsonDevices);
+                        indentLevel = 2;
+                        indentString = new string(' ', indentLevel * _indentSize);
+                        Console.WriteLine($"{indentString}Number of sensors for division {division.Name} retrieved : {maxeeSensors.Total}");
+                        int k = 1;
+                        foreach (var maxeeSensor in maxeeSensors.Data)
+                        {
+                            indentLevel = 2;
+                            indentString = new string(' ', indentLevel * _indentSize);
+                            Console.WriteLine($"{indentString}{k} SensorName : {maxeeSensor.Name} (id={maxeeSensor.Id})");
+                            k++;
+                            //get all channels for device
+                            request = new RestRequest($"api/channels/{maxeeSensor.Id}", Method.GET)
+                            {
+                                RequestFormat = DataFormat.Json
+                            };
+                            request.AddHeader("Authorization", "Bearer " + _sessionToken);
+                            request.AddQueryParameter("sort", "name-asc");
                             request.AddQueryParameter("page", "1");
                             request.AddQueryParameter("pageSize", "20");
-                            //request.AddQueryParameter("filter", $"channelId~eq~{maxeeChannel.Id}");
-                            request.AddQueryParameter("filter", $"(channelId~eq~{maxeeChannel.Id}~and~timestamp~gte~datetime'{urlStartDate}')", false);
                             response = client.Execute(request);
-                            var jsonChannelData = response.Content;
-                            var maxeeChannelDataList = MaxeeDeviceChannelDataQuickType.MaxeeDeviceChannelDataList.FromJson(jsonChannelData);
-                            indentLevel = 4;
-                            indentString = new string(' ', indentLevel * IndentSize);
+                            var jsonChannels = response.Content;
+                            var maxeeDeviceChannels = MaxeeDeviceChannelsQuickType.MaxeeDeviceChannels.FromJson(jsonChannels);
+                            indentLevel = 3;
+                            indentString = new string(' ', indentLevel * _indentSize);
                             Console.WriteLine($"{indentString}Number of channels for device {maxeeSensor.Name} retrieved : {maxeeDeviceChannels.Total}");
-                            int ii = 1;
-                            foreach (var maxeeChannelData in maxeeChannelDataList.Data)
+                            int l = 1;
+                            foreach (var maxeeChannel in maxeeDeviceChannels.Data)
                             {
-                                Console.WriteLine($"{indentString}{ii} TimeStamp : {maxeeChannelData.TimeStamp}  Value : {maxeeChannelData.Value}");
-                                ii++;
+                                Console.WriteLine($"{indentString}{l} ChannelName : {maxeeChannel.Name} (id={maxeeChannel.Id})");
+                                l++;
                             }
 
                         }
 
                     }
-
                 }
             }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+
+            Console.WriteLine("Press any key to return to menu.");
+            Console.ReadLine();
         }
 
         private static string ExecuteAPIMethod(RestClient client, string token, string apiMethod, bool dumpJson = false)
@@ -218,36 +311,42 @@ namespace Maxee.DemoAPIConsole
             IRestResponse response = client.Execute(request);
             if (dumpJson)
                 DumpJsonPrettyFormatted(apiMethod, response.Content);
-            return response.Content;
+            if (response.IsSuccessful)
+                return response.Content;
+            else
+            {
+                throw new ApplicationException($"Could not retrieve data, statuscode: {response.StatusCode.ToString()}");
+            }
         }
 
         private static void DumpJsonPrettyFormatted(string titleAPI, string jsonContent)
         {
-            try
-            {
-                var obj = Newtonsoft.Json.JsonConvert.DeserializeObject(jsonContent);
-                var f = Newtonsoft.Json.JsonConvert.SerializeObject(obj, Newtonsoft.Json.Formatting.Indented);
-                Console.WriteLine();
-                Console.WriteLine("===================" + titleAPI);
-                Console.WriteLine(f);
-            }
-            catch (Exception ex)
-            {
+                try
+                {
+                    var obj = Newtonsoft.Json.JsonConvert.DeserializeObject(jsonContent);
+                    var f = Newtonsoft.Json.JsonConvert.SerializeObject(obj, Newtonsoft.Json.Formatting.Indented);
+                    Console.WriteLine();
+                    Console.WriteLine("===================" + titleAPI);
+                    Console.WriteLine(f);
+                    Console.WriteLine("===================" );
+                }
+                catch (Exception ex)
+                {
 
-                Console.WriteLine();
-                Console.WriteLine("===================" + titleAPI);
-                Console.WriteLine(ex.Message);
-            }
-
+                    Console.WriteLine();
+                    Console.WriteLine("===================" + titleAPI);
+                    Console.WriteLine(ex.Message);
+                    Console.WriteLine("===================");
+                }
         }
 
         private static void DumpDynamicObjectInfo(dynamic input)
         {
-            foreach (string propertyName in GetPropertyKeysForDynamic(input))
-            {
-                var propertyValue = input[propertyName];
-                Console.WriteLine(propertyName + "         " + propertyValue);
-            }
+                foreach (string propertyName in GetPropertyKeysForDynamic(input))
+                {
+                    var propertyValue = input[propertyName];
+                    Console.WriteLine(propertyName + "         " + propertyValue);
+                }
         }
 
         public static List<string> GetPropertyKeysForDynamic(dynamic dynamicToGetPropertiesFor)
