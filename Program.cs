@@ -9,6 +9,7 @@ namespace Maxee.DemoAPIConsole
     {
         static string _apiKeyUser = string.Empty;
         const int _indentSize = 4;
+        private const string BaseUrl = "https://api.maxee.eu";
         static string _sessionToken;
         static bool _debugDump = false;
 
@@ -56,9 +57,10 @@ namespace Maxee.DemoAPIConsole
         static void GetAPIKey()
         {
             Console.Clear();
-            Console.WriteLine("Enter your API Key");
+            Console.WriteLine("Enter your API Key. This key will be used for requesting an authorization token.");
             var apiKey = Console.ReadLine();
             if (!string.IsNullOrEmpty(apiKey)) _apiKeyUser = apiKey;
+            Console.WriteLine("Api key is stored.");
             Console.WriteLine("Press any key to return to menu.");
             Console.ReadLine();
         }
@@ -67,12 +69,14 @@ namespace Maxee.DemoAPIConsole
             try
             {
                 Console.Clear();
-                var client = new RestClient("https://api.maxee.eu");
+                Console.WriteLine("Trying to get an authorization token.");
+                var client = new RestClient(BaseUrl);
                 var request = new RestRequest("api/Auth/token", Method.POST)
                 {
                     RequestFormat = DataFormat.Json
                 };
                 request.AddJsonBody(new { apiKey = _apiKeyUser }); // uses JsonSerializer
+
                 IRestResponse response = client.Execute(request);
                 var content = response.Content; // raw content as string
                 //if _debugDump is true it shows json content in console
@@ -131,7 +135,7 @@ namespace Maxee.DemoAPIConsole
 
                         Console.WriteLine($"\r\nRetrieving data for channel with id {channelId}, pagesize=20");
 
-                        var client = new RestClient("https://api.maxee.eu");
+                        var client = new RestClient(BaseUrl);
                         long count = 0;
                         int pagenumber = 1;
                         //We should use a pagesize for retrieving data. Then we need to repeat the request until no data is retrieved
@@ -201,7 +205,7 @@ namespace Maxee.DemoAPIConsole
                 int indentLevel;
                 string indentString;
 
-                var client = new RestClient("https://api.maxee.eu");
+                var client = new RestClient(BaseUrl);
 
                 //Get all companies of users apikey
                 var jsonString = ExecuteAPIMethod(client, _sessionToken, "api/companies");
