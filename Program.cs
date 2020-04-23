@@ -9,7 +9,7 @@ namespace Maxee.DemoAPIConsole
     {
         static string _apiKeyUser = string.Empty;
         const int _indentSize = 4;
-        private const string BaseUrl = "https://api.maxee.eu";
+        private const string BaseUrl ="https://api.maxee.eu";
         static string _sessionToken;
         static bool _debugDump = false;
 
@@ -42,7 +42,7 @@ namespace Maxee.DemoAPIConsole
                     GetAuthorizationToken();
                     return true;
                 case "3":
-                    GetAllChannels();
+                    GetAllActiveInactiveChannels();
                     return true;
                 case "4":
                     GetChannelDataOfDeviceStartingAtTimestamp();
@@ -194,7 +194,7 @@ namespace Maxee.DemoAPIConsole
             Console.ReadLine();
         }
 
-        private static void GetAllChannels()
+        private static void GetAllActiveInactiveChannels()
         {
             //Get all companies of users apikey
             try
@@ -267,10 +267,15 @@ namespace Maxee.DemoAPIConsole
                         {
                             indentLevel = 2;
                             indentString = new string(' ', indentLevel * _indentSize);
-                            Console.WriteLine($"{indentString}{k} SensorName : {maxeeSensor.Name} (id={maxeeSensor.Id})");
-                            k++;
-                            //get all channels for device
-                            request = new RestRequest($"api/channels/{maxeeSensor.Id}", Method.GET)
+
+                            //get all active channels for device
+                            Console.WriteLine($"{indentString}{k} SensorName : {maxeeSensor.Name} (id={maxeeSensor.Id}) ");
+                            
+                            indentLevel = 3;
+                            indentString = new string(' ', indentLevel * _indentSize);
+
+                            Console.WriteLine($"{indentString}ACTIVE CHANNELS");
+                            request = new RestRequest($"api/channels/getactivechannels/{maxeeSensor.Id}", Method.GET)
                             {
                                 RequestFormat = DataFormat.Json
                             };
@@ -281,9 +286,9 @@ namespace Maxee.DemoAPIConsole
                             response = client.Execute(request);
                             var jsonChannels = response.Content;
                             var maxeeDeviceChannels = MaxeeDeviceChannelsQuickType.MaxeeDeviceChannels.FromJson(jsonChannels);
-                            indentLevel = 3;
+                            indentLevel = 4;
                             indentString = new string(' ', indentLevel * _indentSize);
-                            Console.WriteLine($"{indentString}Number of channels for device {maxeeSensor.Name} retrieved : {maxeeDeviceChannels.Total}");
+                            Console.WriteLine($"{indentString}Number of ACTIVE channels for device {maxeeSensor.Name} retrieved : {maxeeDeviceChannels.Total}");
                             int l = 1;
                             foreach (var maxeeChannel in maxeeDeviceChannels.Data)
                             {
@@ -291,6 +296,31 @@ namespace Maxee.DemoAPIConsole
                                 l++;
                             }
 
+                            //get all inactive channels for device
+                            indentLevel = 3;
+                            indentString = new string(' ', indentLevel * _indentSize);
+                            Console.WriteLine($"{indentString}INACTIVE CHANNELS");
+                            request = new RestRequest($"api/channels/getinactivechannels/{maxeeSensor.Id}", Method.GET)
+                            {
+                                RequestFormat = DataFormat.Json
+                            };
+                            request.AddHeader("Authorization", "Bearer " + _sessionToken);
+                            request.AddQueryParameter("sort", "name-asc");
+                            request.AddQueryParameter("page", "1");
+                            request.AddQueryParameter("pageSize", "20");
+                            response = client.Execute(request);
+                            jsonChannels = response.Content;
+                            maxeeDeviceChannels = MaxeeDeviceChannelsQuickType.MaxeeDeviceChannels.FromJson(jsonChannels);
+                            indentLevel = 4;
+                            indentString = new string(' ', indentLevel * _indentSize);
+                            Console.WriteLine($"{indentString}Number of INACTIVE channels for device {maxeeSensor.Name} retrieved : {maxeeDeviceChannels.Total}");
+                            l = 1;
+                            foreach (var maxeeChannel in maxeeDeviceChannels.Data)
+                            {
+                                Console.WriteLine($"{indentString}{l} ChannelName : {maxeeChannel.Name} (id={maxeeChannel.Id})");
+                                l++;
+                            }
+                            k++;
                         }
 
                     }

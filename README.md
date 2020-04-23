@@ -6,7 +6,7 @@ To limit the number of API calls we need to collect all channel ids for which we
 The demo application shows a console menu:
 1. Enter API key : here you can enter your api key.
 2. Get authorization token (valid for 24 hours) : the application will request an authorization token which will be used for all other API calls. The token will expire within 24 hour. When the token is expired a new token must be requested.
-3. Get all channel ids : will show all channels and ids for which your API token has permissions. It will loop through each company, division and devices and it will print out all channels with id's.
+3. Get all active and inactive channel ids : will show all active and inactive channels and ids for which your API token has permissions. It will loop through each company, division and devices and it will print out all active/inactive channels with id's.
 4. Get data for a channeldid : retrieve channeldata for a specific channel with id x starting at a certain timestamp.
 
 Once you have listed all channel ids you can start retrieving data by following the steps 1,2 and 4.
@@ -27,7 +27,7 @@ Replace "< enter a channelid>" with a channelid.
 
 Get Data Request
 ```javascript
-var client = new RestClient("https://my.maxee.eu/api/data?sort=timeStamp-desc&page=24&pageSize=20&filter=(channelId~eq~<enter a channelId<~and~timeStamp~gte~datetime'2020-01-05T10-00-00')");
+var client = new RestClient("https://api.maxee.eu/api/data?sort=timeStamp-desc&page=24&pageSize=20&filter=(channelId~eq~<enter a channelId<~and~timeStamp~gte~datetime'2020-01-05T10-00-00')");
 client.Timeout = -1;
 var request = new RestRequest(Method.GET);
 request.AddHeader("Authorization", "Bearer <enter your sessiontoken here>");
@@ -42,7 +42,7 @@ Replace "< enter your sessiontoken here>" with the retrieved sessiontoken.
 Get Authorization Token 
 
 ```javascript
-var client = new RestClient("https://my.maxee.eu/api/Auth/token");
+var client = new RestClient("https://api.maxee.eu/api/Auth/token");
 client.Timeout = -1;
 var request = new RestRequest(Method.POST);
 request.AddHeader("Content-Type", "application/json");
@@ -55,7 +55,7 @@ Console.WriteLine(response.Content);
 Get all companies
 
 ```javascript
-var client = new RestClient("https://my.maxee.eu/api/companies");
+var client = new RestClient("https://api.maxee.eu/api/companies");
 client.Timeout = -1;
 var request = new RestRequest(Method.GET);
 request.AddHeader("Authorization", "Bearer <enter your sessiontoken here>");
@@ -68,7 +68,7 @@ Get all divisions for a company
 Replace "< enter a companyid>" with a companyid.
 
 ```javascript
-var client = new RestClient("https://my.maxee.eu/api/divisions?filter=(companyid~eq~<enter a companyid>)");
+var client = new RestClient("https://api.maxee.eu/api/divisions?filter=(companyid~eq~<enter a companyid>)");
 client.Timeout = -1;
 var request = new RestRequest(Method.GET);
 request.AddHeader("Authorization", "Bearer <enter your sessiontoken here>");
@@ -80,7 +80,7 @@ Console.WriteLine(response.Content);
 Get all devices
 Replace "< enter a divisionid>" with a divisionid.
 ```javascript
-var client = new RestClient("https://my.maxee.eu/api/devices?filter=(divisionid~eq~<enter a divisionid>)");
+var client = new RestClient("https://api.maxee.eu/api/devices?filter=(divisionid~eq~<enter a divisionid>)");
 client.Timeout = -1;
 var request = new RestRequest(Method.GET);
 request.AddHeader("Authorization", "Bearer <enter your sessiontoken here>");
@@ -89,10 +89,10 @@ IRestResponse response = client.Execute(request);
 Console.WriteLine(response.Content);
 ```
 
-Get channels for device
+Get Inactive channels for device
 Replace "< enter a deviceid>" with a divisionid.
 ```javascript
-var client = new RestClient("https://my.maxee.eu/api/channels/<enter a deviceid>");
+var client = new RestClient("https://api.maxee.eu/api/channels/getinactivechannels/<enter a deviceid>");
 client.Timeout = -1;
 var request = new RestRequest(Method.GET);
 request.AddHeader("Authorization", "Bearer <enter your sessiontoken here>");
