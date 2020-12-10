@@ -275,7 +275,7 @@ namespace Maxee.DemoAPIConsole
                             indentString = new string(' ', indentLevel * _indentSize);
 
                             Console.WriteLine($"{indentString}ACTIVE CHANNELS");
-                            request = new RestRequest($"api/channels/getactivechannels/{maxeeSensor.Id}", Method.GET)
+                            request = new RestRequest($"api/channels/GetActiveChannels/{maxeeSensor.Id}", Method.GET)
                             {
                                 RequestFormat = DataFormat.Json
                             };
@@ -286,16 +286,21 @@ namespace Maxee.DemoAPIConsole
                             response = client.Execute(request);
                             var jsonChannels = response.Content;
                             var maxeeDeviceChannels = MaxeeDeviceChannelsQuickType.MaxeeDeviceChannels.FromJson(jsonChannels);
+                            int l = 1;
                             indentLevel = 4;
                             indentString = new string(' ', indentLevel * _indentSize);
-                            Console.WriteLine($"{indentString}Number of ACTIVE channels for device {maxeeSensor.Name} retrieved : {maxeeDeviceChannels.Total}");
-                            int l = 1;
-                            foreach (var maxeeChannel in maxeeDeviceChannels.Data)
+                            if (maxeeDeviceChannels != null)
                             {
-                                Console.WriteLine($"{indentString}{l} ChannelName : {maxeeChannel.Name} (id={maxeeChannel.Id})");
-                                l++;
+                                Console.WriteLine($"{indentString}Number of ACTIVE channels for device {maxeeSensor.Name} retrieved : {maxeeDeviceChannels.Total}");
+                                l = 1;
+                                foreach (var maxeeChannel in maxeeDeviceChannels.Data)
+                                {
+                                    Console.WriteLine($"{indentString}{l} ChannelName : {maxeeChannel.Name} (id={maxeeChannel.Id})");
+                                    l++;
+                                }
                             }
-
+                            else
+                                Console.WriteLine($"{indentString}Number of NO ACTIVE channels for device {maxeeSensor.Name}.");
                             //get all inactive channels for device
                             indentLevel = 3;
                             indentString = new string(' ', indentLevel * _indentSize);
@@ -313,13 +318,18 @@ namespace Maxee.DemoAPIConsole
                             maxeeDeviceChannels = MaxeeDeviceChannelsQuickType.MaxeeDeviceChannels.FromJson(jsonChannels);
                             indentLevel = 4;
                             indentString = new string(' ', indentLevel * _indentSize);
-                            Console.WriteLine($"{indentString}Number of INACTIVE channels for device {maxeeSensor.Name} retrieved : {maxeeDeviceChannels.Total}");
-                            l = 1;
-                            foreach (var maxeeChannel in maxeeDeviceChannels.Data)
+                            if (maxeeDeviceChannels != null)
                             {
-                                Console.WriteLine($"{indentString}{l} ChannelName : {maxeeChannel.Name} (id={maxeeChannel.Id})");
-                                l++;
+                                Console.WriteLine($"{indentString}Number of INACTIVE channels for device {maxeeSensor.Name} retrieved : {maxeeDeviceChannels.Total}");
+                                l = 1;
+                                foreach (var maxeeChannel in maxeeDeviceChannels.Data)
+                                {
+                                    Console.WriteLine($"{indentString}{l} ChannelName : {maxeeChannel.Name} (id={maxeeChannel.Id})");
+                                    l++;
+                                }
                             }
+                            else
+                                Console.WriteLine($"{indentString}Number of NO INACTIVE channels for device {maxeeSensor.Name}.");
                             k++;
                         }
 
