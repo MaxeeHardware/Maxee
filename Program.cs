@@ -9,7 +9,7 @@ namespace Maxee.DemoAPIConsole
     {
         static string _apiKeyUser = string.Empty;
         const int _indentSize = 4;
-        private const string BaseUrl ="https://api.maxee.eu";
+        private const string BaseUrl = "https://api.maxee.eu";
         static string _sessionToken;
         static bool _debugDump = false;
 
@@ -30,7 +30,8 @@ namespace Maxee.DemoAPIConsole
             Console.WriteLine("2) Get authorization token (valid 24 hours). ");
             Console.WriteLine("3) Get all channelids. ");
             Console.WriteLine("4) Get data for channelid.");
-            Console.WriteLine("5) Exit");
+            Console.WriteLine("5) Get all active channels for sensor (sensorid).");
+            Console.WriteLine("6) Exit");
             Console.Write("\r\nSelect an option: ");
 
             switch (Console.ReadLine())
@@ -48,6 +49,9 @@ namespace Maxee.DemoAPIConsole
                     GetChannelDataOfDeviceStartingAtTimestamp();
                     return true;
                 case "5":
+                    GetAllActiveInactiveChannelsForSensorId();
+                    return true;
+                case "6":
                     return false;
                 default:
                     return true;
@@ -270,7 +274,7 @@ namespace Maxee.DemoAPIConsole
 
                             //get all active channels for device
                             Console.WriteLine($"{indentString}{k} SensorName : {maxeeSensor.Name} (id={maxeeSensor.Id}) ");
-                            
+
                             indentLevel = 3;
                             indentString = new string(' ', indentLevel * _indentSize);
 
@@ -345,6 +349,103 @@ namespace Maxee.DemoAPIConsole
             Console.ReadLine();
         }
 
+        private static void GetAllActiveInactiveChannelsForSensorId()
+        {
+            //Get all companies of users apikey
+            try
+            {
+                Console.Clear();
+                Console.WriteLine("Enter sensor id :");
+                int sensorId = 0;
+                if (!int.TryParse(Console.ReadLine(), out sensorId))
+                {
+                    Console.WriteLine("Invalid SensorId.");
+                }
+                else
+                {
+                    RestRequest request = null;
+                    IRestResponse response = null;
+                    int indentLevel;
+                    string indentString;
+
+                    var client = new RestClient(BaseUrl);
+                    indentLevel = 1;
+                    indentString = new string(' ', indentLevel * _indentSize);
+
+                    //get all active channels for device
+                    Console.WriteLine($"{indentString} (id={sensorId}) ");
+
+                    indentLevel = 3;
+                    indentString = new string(' ', indentLevel * _indentSize);
+
+                    Console.WriteLine($"{indentString}ACTIVE CHANNELS");
+                    request = new RestRequest($"api/channels/GetActiveChannels/{sensorId}", Method.GET)
+                    {
+                        RequestFormat = DataFormat.Json
+                    };
+                    request.AddHeader("Authorization", "Bearer " + _sessionToken);
+                    request.AddQueryParameter("sort", "name-asc");
+                    request.AddQueryParameter("page", "1");
+                    request.AddQueryParameter("pageSize", "20");
+                    response = client.Execute(request);
+                    var jsonChannels = response.Content;
+                    var maxeeDeviceChannels = MaxeeDeviceChannelsQuickType.MaxeeDeviceChannels.FromJson(jsonChannels);
+                    int l = 1;
+                    indentLevel = 4;
+                    indentString = new string(' ', indentLevel * _indentSize);
+                    if (maxeeDeviceChannels != null)
+                    {
+                        Console.WriteLine($"{indentString}Number of ACTIVE channels for sensor with id {sensorId} retrieved : {maxeeDeviceChannels.Total}");
+                        l = 1;
+                        foreach (var maxeeChannel in maxeeDeviceChannels.Data)
+                        {
+                            Console.WriteLine($"{indentString}{l} ChannelName : {maxeeChannel.Name} (id={maxeeChannel.Id})");
+                            l++;
+                        }
+                    }
+                    else
+                        Console.WriteLine($"{indentString}Number of NO ACTIVE channels for sensor with id {sensorId} .");
+                    //get all inactive channels for device
+                    indentLevel = 3;
+                    indentString = new string(' ', indentLevel * _indentSize);
+                    Console.WriteLine($"{indentString}INACTIVE CHANNELS");
+                    request = new RestRequest($"api/channels/getinactivechannels/{sensorId}", Method.GET)
+                    {
+                        RequestFormat = DataFormat.Json
+                    };
+                    request.AddHeader("Authorization", "Bearer " + _sessionToken);
+                    request.AddQueryParameter("sort", "name-asc");
+                    request.AddQueryParameter("page", "1");
+                    request.AddQueryParameter("pageSize", "20");
+                    response = client.Execute(request);
+                    jsonChannels = response.Content;
+                    maxeeDeviceChannels = MaxeeDeviceChannelsQuickType.MaxeeDeviceChannels.FromJson(jsonChannels);
+                    indentLevel = 4;
+                    indentString = new string(' ', indentLevel * _indentSize);
+                    if (maxeeDeviceChannels != null)
+                    {
+                        Console.WriteLine($"{indentString}Number of INACTIVE channels for sensor with id {sensorId} retrieved : {maxeeDeviceChannels.Total}");
+                        l = 1;
+                        foreach (var maxeeChannel in maxeeDeviceChannels.Data)
+                        {
+                            Console.WriteLine($"{indentString}{l} ChannelName : {maxeeChannel.Name} (id={maxeeChannel.Id})");
+                            l++;
+                        }
+                    }
+                    else
+                        Console.WriteLine($"{indentString}Number of NO INACTIVE channels for sensor with id {sensorId} .");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+
+            Console.WriteLine("Press any key to return to menu.");
+            Console.ReadLine();
+        }
+
+
         private static string ExecuteAPIMethod(RestClient client, string token, string apiMethod, bool dumpJson = false)
         {
             var request = new RestRequest(apiMethod, Method.GET)
@@ -365,32 +466,32 @@ namespace Maxee.DemoAPIConsole
 
         private static void DumpJsonPrettyFormatted(string titleAPI, string jsonContent)
         {
-                try
-                {
-                    var obj = Newtonsoft.Json.JsonConvert.DeserializeObject(jsonContent);
-                    var f = Newtonsoft.Json.JsonConvert.SerializeObject(obj, Newtonsoft.Json.Formatting.Indented);
-                    Console.WriteLine();
-                    Console.WriteLine("===================" + titleAPI);
-                    Console.WriteLine(f);
-                    Console.WriteLine("===================" );
-                }
-                catch (Exception ex)
-                {
+            try
+            {
+                var obj = Newtonsoft.Json.JsonConvert.DeserializeObject(jsonContent);
+                var f = Newtonsoft.Json.JsonConvert.SerializeObject(obj, Newtonsoft.Json.Formatting.Indented);
+                Console.WriteLine();
+                Console.WriteLine("===================" + titleAPI);
+                Console.WriteLine(f);
+                Console.WriteLine("===================");
+            }
+            catch (Exception ex)
+            {
 
-                    Console.WriteLine();
-                    Console.WriteLine("===================" + titleAPI);
-                    Console.WriteLine(ex.Message);
-                    Console.WriteLine("===================");
-                }
+                Console.WriteLine();
+                Console.WriteLine("===================" + titleAPI);
+                Console.WriteLine(ex.Message);
+                Console.WriteLine("===================");
+            }
         }
 
         private static void DumpDynamicObjectInfo(dynamic input)
         {
-                foreach (string propertyName in GetPropertyKeysForDynamic(input))
-                {
-                    var propertyValue = input[propertyName];
-                    Console.WriteLine(propertyName + "         " + propertyValue);
-                }
+            foreach (string propertyName in GetPropertyKeysForDynamic(input))
+            {
+                var propertyValue = input[propertyName];
+                Console.WriteLine(propertyName + "         " + propertyValue);
+            }
         }
 
         public static List<string> GetPropertyKeysForDynamic(dynamic dynamicToGetPropertiesFor)
