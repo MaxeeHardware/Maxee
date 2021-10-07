@@ -299,7 +299,7 @@ namespace Maxee.DemoAPIConsole
                                 l = 1;
                                 foreach (var maxeeChannel in maxeeDeviceChannels.Data)
                                 {
-                                    Console.WriteLine($"{indentString}{l} ChannelName : {maxeeChannel.Name} (id={maxeeChannel.Id})");
+                                    Console.WriteLine($"{indentString}{l} ChannelName : {maxeeChannel.Name}; ChannelDescription : {maxeeChannel.Description}; ChannelUnit : {maxeeChannel.Unit}; (id={maxeeChannel.Id})");
                                     l++;
                                 }
                             }
@@ -328,7 +328,7 @@ namespace Maxee.DemoAPIConsole
                                 l = 1;
                                 foreach (var maxeeChannel in maxeeDeviceChannels.Data)
                                 {
-                                    Console.WriteLine($"{indentString}{l} ChannelName : {maxeeChannel.Name} (id={maxeeChannel.Id})");
+                                    Console.WriteLine($"{indentString}{l} ChannelName : {maxeeChannel.Name}; ChannelDescription : {maxeeChannel.Description}; ChannelUnit : {maxeeChannel.Unit}; (id={maxeeChannel.Id})");
                                     l++;
                                 }
                             }
@@ -399,7 +399,7 @@ namespace Maxee.DemoAPIConsole
                         l = 1;
                         foreach (var maxeeChannel in maxeeDeviceChannels.Data)
                         {
-                            Console.WriteLine($"{indentString}{l} ChannelName : {maxeeChannel.Name} (id={maxeeChannel.Id})");
+                            Console.WriteLine($"{indentString}{l} ChannelName : {maxeeChannel.Name}; ChannelDescription : {maxeeChannel.Description}; ChannelUnit : {maxeeChannel.Unit}; (id={maxeeChannel.Id})");
                             l++;
                         }
                     }
@@ -428,7 +428,7 @@ namespace Maxee.DemoAPIConsole
                         l = 1;
                         foreach (var maxeeChannel in maxeeDeviceChannels.Data)
                         {
-                            Console.WriteLine($"{indentString}{l} ChannelName : {maxeeChannel.Name} (id={maxeeChannel.Id})");
+                            Console.WriteLine($"{indentString}{l} ChannelName : {maxeeChannel.Name}; ChannelDescription : {maxeeChannel.Description}; ChannelUnit : {maxeeChannel.Unit}; (id={maxeeChannel.Id})");
                             l++;
                         }
                     }
